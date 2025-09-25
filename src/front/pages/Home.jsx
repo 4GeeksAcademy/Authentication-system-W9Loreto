@@ -1,52 +1,104 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import RegisterModal from "../components/RegisterModal.jsx";
 
-export const Home = () => {
+export default function Home() {
+  const navigate = useNavigate();
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-	const { store, dispatch } = useGlobalReducer()
+  const [showReg, setShowReg] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setLoginError("");
 
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
+    try {
+      if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env");
 
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
+      const resp = await fetch(`${backendUrl}/api/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
+      const data = await resp.json();
 
-			return data
+      if (!resp.ok) {
+        setLoginError(data?.error || "Login failed");
+        return;
+      }
 
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
+      // No token handling: on success just go to /private
+      navigate("/private");
+    } catch (err) {
+      setLoginError(err.message || "Network error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-	}
+  return (
+    <div className="container py-5" style={{ maxWidth: 560 }}>
+      <h1 className="h3 text-center mb-4">Sign in</h1>
 
-	useEffect(() => {
-		loadMessage()
-	}, [])
+      <form onSubmit={handleLogin} className="card p-4 shadow-sm">
+        <div className="mb-3">
+          <label htmlFor="loginEmail" className="form-label">Email</label>
+          <input
+            id="loginEmail"
+            type="email"
+            className="form-control"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
 
-	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
-			</div>
-		</div>
-	);
-}; 
+        <div className="mb-3">
+          <label htmlFor="loginPassword" className="form-label">Password</label>
+          <input
+            id="loginPassword"
+            type="password"
+            className="form-control"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </div>
+
+        {loginError && <div className="alert alert-danger py-2">{loginError}</div>}
+
+        <div className="d-grid">
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
+            {submitting ? "Signing in..." : "Sign in"}
+          </button>
+        </div>
+
+        <div className="text-center mt-3">
+          <small className="text-muted">
+            Don’t have an account?{" "}
+            <button
+              type="button"
+              className="btn btn-link p-0 align-baseline"
+              onClick={() => setShowReg(true)}
+            >
+              Register now here
+            </button>
+          </small>
+        </div>
+      </form>
+
+      {/* Register Modal */}
+      <RegisterModal show={showReg} onClose={() => setShowReg(false)} backendUrl={backendUrl} />
+    </div>
+  );
+}
