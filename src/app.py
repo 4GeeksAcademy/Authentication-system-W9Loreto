@@ -10,6 +10,11 @@ from api.models import db
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 # from models import Person
 
@@ -28,6 +33,12 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# JWT CONFIG
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+# (defaults are fine: tokens in headers)
+jwt = JWTManager(app)
+
 MIGRATE = Migrate(app, db, compare_type=True)
 db.init_app(app)
 

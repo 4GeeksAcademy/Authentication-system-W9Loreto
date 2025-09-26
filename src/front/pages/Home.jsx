@@ -20,7 +20,7 @@ export default function Home() {
     try {
       if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env");
 
-      const resp = await fetch(`${backendUrl}/api/signup`, {
+      const resp = await fetch(`${backendUrl}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -33,7 +33,18 @@ export default function Home() {
         return;
       }
 
-      // No token handling: on success just go to /private
+      // Token handling: on success just go to /private
+      const token = data?.access_token;
+
+      if(!token){
+        setLoginError("No token returned by API")
+        return;
+      }
+      //Save token and user id
+      
+      sessionStorage.setItem("token", token)
+      if(data?.user) sessionStorage.setItem("user", JSON.stringify(data.user));
+
       navigate("/private");
     } catch (err) {
       setLoginError(err.message || "Network error");
